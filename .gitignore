@@ -1,0 +1,12 @@
+# Logs & runtime artifacts
+*.log
+n8n_run.log
+
+# Test drop events
+watch_folder/event_test_*
+watch_folder/incoming_test_*
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store

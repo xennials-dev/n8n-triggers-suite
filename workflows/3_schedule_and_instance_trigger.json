@@ -1,0 +1,172 @@
+{
+  "name": "Local Trigger 3 - Schedule and Instance Triggers",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger-node",
+      "name": "Schedule Trigger (Cron / Interval)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "events": [
+          "n8n.ready"
+        ]
+      },
+      "id": "n8n-system-trigger-node",
+      "name": "n8n System Event Trigger",
+      "type": "n8n-nodes-base.n8nTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "param-1",
+              "name": "triggerSource",
+              "value": "Schedule Cron/Interval",
+              "type": "string"
+            },
+            {
+              "id": "param-2",
+              "name": "executionTime",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "param-3",
+              "name": "status",
+              "value": "Heartbeat pulse OK",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "schedule-handler-set",
+      "name": "Process Scheduled Pulse",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        520,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "param-1",
+              "name": "triggerSource",
+              "value": "n8n System Startup / Restart",
+              "type": "string"
+            },
+            {
+              "id": "param-2",
+              "name": "bootTime",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "param-3",
+              "name": "instanceStatus",
+              "value": "Instance is ready and listening",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "startup-handler-set",
+      "name": "Process Instance Startup",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        520,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconsole.log(`[SYSTEM PULSE] ${item.triggerSource} triggered at ${item.executionTime || item.bootTime}`);\n\nreturn [\n  {\n    json: {\n      ...item,\n      systemHealth: 'OPERATIONAL'\n    }\n  }\n];"
+      },
+      "id": "audit-logger-code",
+      "name": "System Audit Logger",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (Cron / Interval)": {
+      "main": [
+        [
+          {
+            "node": "Process Scheduled Pulse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "n8n System Event Trigger": {
+      "main": [
+        [
+          {
+            "node": "Process Instance Startup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Scheduled Pulse": {
+      "main": [
+        [
+          {
+            "node": "System Audit Logger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Instance Startup": {
+      "main": [
+        [
+          {
+            "node": "System Audit Logger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

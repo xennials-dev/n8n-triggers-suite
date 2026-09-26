@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n_local_triggers
+    restart: unless-stopped
+    ports:
+      # Direct access to core n8n on port 5679 if needed
+      - "5679:5678"
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      # Base webhook URL points to the user-facing proxy port 5678:
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=UTC
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+    volumes:
+      # n8n persistent internal state (workflows, credentials, execution logs)
+      - n8n_data:/home/node/.n8n
+      # Host folder mounted inside container for the Local File Trigger node:
+      - ./watch_folder:/data/watch_folder
+      # Workflows directory to easily import/export:
+      - ./workflows:/data/workflows
+
+  auth_proxy:
+    image: node:20-alpine
+    container_name: n8n_auth_proxy
+    restart: unless-stopped
+    ports:
+      # User-facing entrypoint: http://localhost:5678 (zero-click auto-login)
+      - "5678:5678"
+    environment:
+      - PROXY_PORT=5678
+      - N8N_PORT=5678
+      - N8N_HOST=n8n
+      - N8N_LOCAL_ADMIN_EMAIL=admin@local.dev
+      - N8N_LOCAL_ADMIN_PASSWORD=LocalDevPassword123!
+    volumes:
+      - ./proxy:/app
+    working_dir: /app
+    command: node auto-auth-proxy.js
+    depends_on:
+      - n8n
+
+volumes:
+  n8n_data:

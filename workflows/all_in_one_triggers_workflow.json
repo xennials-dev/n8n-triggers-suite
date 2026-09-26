@@ -1,0 +1,211 @@
+{
+  "name": "Local Triggers Master Suite (All 3 Triggers)",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerOn": "folder",
+        "path": "./watch_folder",
+        "events": [
+          "add",
+          "change"
+        ],
+        "options": {
+          "awaitWriteFinish": true,
+          "ignoreInitial": true,
+          "usePolling": true,
+          "depth": 2
+        }
+      },
+      "id": "master-file-trigger",
+      "name": "Trigger 1: Local File Trigger",
+      "type": "n8n-nodes-base.localFileTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "triggerType",
+              "value": "FILE_SYSTEM",
+              "type": "string"
+            },
+            {
+              "id": "p2",
+              "name": "filePath",
+              "value": "={{ $json.path }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "event",
+              "value": "={{ $json.event }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "master-file-handler",
+      "name": "Handle File Event",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        540,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "local-api-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "master-webhook-trigger",
+      "name": "Trigger 2: Incoming Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        380
+      ],
+      "webhookId": "local-api-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"source\": \"n8n Local Webhook\",\n  \"receivedAt\": \"{{ $now.toISO() }}\",\n  \"payload\": {{ JSON.stringify($json.body) }}\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "master-webhook-respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        540,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "master-schedule-trigger",
+      "name": "Trigger 3A: Schedule (Interval/Cron)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "events": [
+          "n8n.ready"
+        ]
+      },
+      "id": "master-instance-trigger",
+      "name": "Trigger 3B: n8n Instance Ready",
+      "type": "n8n-nodes-base.n8nTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "s1",
+              "name": "systemEvent",
+              "value": "={{ $json.event || 'scheduled_pulse' }}",
+              "type": "string"
+            },
+            {
+              "id": "s2",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "master-system-handler",
+      "name": "Handle System / Cron Pulse",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        540,
+        660
+      ]
+    }
+  ],
+  "connections": {
+    "Trigger 1: Local File Trigger": {
+      "main": [
+        [
+          {
+            "node": "Handle File Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger 2: Incoming Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger 3A: Schedule (Interval/Cron)": {
+      "main": [
+        [
+          {
+            "node": "Handle System / Cron Pulse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Trigger 3B: n8n Instance Ready": {
+      "main": [
+        [
+          {
+            "node": "Handle System / Cron Pulse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

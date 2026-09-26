@@ -1,0 +1,4 @@
+# Sample File for n8n File Trigger
+This file was placed here to verify that n8n's Local File Trigger detects directory events.
+Timestamp: 2026-09-25T09:39:00Z
+Status: Ready for processing

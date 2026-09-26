@@ -1,0 +1,110 @@
+{
+  "name": "Local Trigger 1 - File System Watcher",
+  "nodes": [
+    {
+      "parameters": {
+        "triggerOn": "folder",
+        "path": "./watch_folder",
+        "events": [
+          "add",
+          "change"
+        ],
+        "options": {
+          "awaitWriteFinish": true,
+          "ignoreInitial": true,
+          "usePolling": true,
+          "depth": 2
+        }
+      },
+      "id": "file-trigger-1",
+      "name": "Local File Trigger",
+      "type": "n8n-nodes-base.localFileTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "param-1",
+              "name": "fileName",
+              "value": "={{ $json.path.split(/[/\\\\]/).pop() }}",
+              "type": "string"
+            },
+            {
+              "id": "param-2",
+              "name": "fullPath",
+              "value": "={{ $json.path }}",
+              "type": "string"
+            },
+            {
+              "id": "param-3",
+              "name": "event",
+              "value": "={{ $json.event }}",
+              "type": "string"
+            },
+            {
+              "id": "param-4",
+              "name": "detectedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "file-metadata-edit",
+      "name": "Extract Metadata",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log the detected file event to the n8n execution console\nconsole.log(`[FILE WATCHER] Event: ${$input.first().json.event} on file: ${$input.first().json.fileName}`);\n\nreturn [\n  {\n    json: {\n      status: 'PROCESSED',\n      ...$input.first().json,\n      message: `Successfully monitored and dispatched ${$input.first().json.fileName}`\n    }\n  }\n];"
+      },
+      "id": "file-logger-code",
+      "name": "Log & Process File",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Local File Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Metadata": {
+      "main": [
+        [
+          {
+            "node": "Log & Process File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
